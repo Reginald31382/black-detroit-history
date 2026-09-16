@@ -2,19 +2,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import HistoryEvent from "@/models/HistoryEvent";
 
-import recoveredBatch from "@/data/black_detroit_history_recovered_needs_review_batch.json";
-
 const VERIFICATION_STATUSES = ["draft", "needs_review", "approved", "rejected"];
-
-const ARCHIVE_STATUSES = ["active", "instagram", "used"];
-
-const INSTAGRAM_STATUSES = [
-  "not_ready",
-  "queued",
-  "scheduled",
-  "published",
-  "failed",
-];
 
 function normalizeRecord(record) {
   return {
@@ -75,6 +63,11 @@ export async function POST() {
   try {
     await connectDB();
 
+    const recoveredModule =
+      await import("@/data/black_detroit_history_recovered_needs_review_batch.json");
+
+    const recoveredBatch = recoveredModule.default || recoveredModule;
+
     const uniqueRecords = new Map();
 
     for (const rawRecord of recoveredBatch) {
@@ -109,7 +102,6 @@ export async function POST() {
       }
 
       await HistoryEvent.create(record);
-
       created++;
     }
 
@@ -137,19 +129,12 @@ export async function POST() {
 
     return NextResponse.json({
       success: true,
-
       message: "Recovered research batch seeded safely.",
-
       sourceRecords: recoveredBatch.length,
-
       uniqueSeedRecords: uniqueRecords.size,
-
       created,
-
       skipped,
-
       databaseTotal: total,
-
       lifecycleTotals: {
         needsReview,
         approved,

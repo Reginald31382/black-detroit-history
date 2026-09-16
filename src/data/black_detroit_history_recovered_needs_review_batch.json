@@ -2020,5 +2020,167 @@
     "archive": {
       "status": "active"
     }
+  },
+  {
+    "month": 9,
+    "day": 16,
+    "year": 1953,
+    "title": "Jazz guitarist Earl Klugh is born in Detroit",
+    "description": "Jazz guitarist and composer Earl Klugh was born in Detroit on September 16, 1953. He began playing piano as a child before taking up guitar and developing his career in Detroit's music community.",
+    "significance": "Klugh became an internationally recognized jazz guitarist and composer, connecting Detroit's musical tradition to the broader history of contemporary jazz.",
+    "category": "Music",
+    "people": ["Earl Klugh", "Yusef Lateef"],
+    "organizations": [],
+    "location": {
+      "address": "",
+      "neighborhood": "Detroit"
+    },
+    "sources": [
+      {
+        "title": "Earl Klugh — Official Biography",
+        "url": "https://earlklugh.com/biography/",
+        "notes": "Documents Klugh's September 16, 1953 birth in Detroit and his early musical development."
+      }
+    ],
+    "images": [],
+    "verification": {
+      "status": "needs_review",
+      "notes": "Strong biographical source. Verify birth details and Detroit connection against an additional independent historical source before approval."
+    },
+    "archive": {
+      "status": "active",
+      "notes": "September 16 research seed."
+    },
+    "instagram": {
+      "status": "not_ready",
+      "caption": "",
+      "scheduledFor": null,
+      "publishedAt": null,
+      "postId": ""
+    }
+  },
+  {
+    "month": 9,
+    "day": 16,
+    "year": 1969,
+    "title": "Beulah Whitby gives an oral-history interview about Black Detroit",
+    "description": "Detroit social worker Beulah Whitby was interviewed on September 16, 1969. The oral-history interview documented her experiences and recollections concerning Black Detroit, including the Depression era, the Sojourner Truth Homes controversy, the 1943 Detroit race riot, the NAACP, the Urban League, and Detroit's Black community.",
+    "significance": "The interview preserves firsthand historical testimony about Black Detroit from a community leader who had worked with the Detroit Commission on Community Relations.",
+    "category": "Community",
+    "people": ["Beulah Whitby"],
+    "organizations": [
+      "Detroit Commission on Community Relations",
+      "NAACP",
+      "Urban League"
+    ],
+    "location": {
+      "address": "",
+      "neighborhood": "Detroit"
+    },
+    "sources": [
+      {
+        "title": "Wayne State University Archives — Beulah Whitby Oral History",
+        "url": "https://archives.wayne.edu/repositories/2/top_containers/47070",
+        "notes": "Documents the September 16, 1969 interview and its coverage of Black Detroit history."
+      }
+    ],
+    "images": [],
+    "verification": {
+      "status": "needs_review",
+      "notes": "Archival record documents the interview date and subject matter. Verify the interview's Detroit connection and biographical details before approval."
+    },
+    "archive": {
+      "status": "active",
+      "notes": "September 16 research seed."
+    },
+    "instagram": {
+      "status": "not_ready",
+      "caption": "",
+      "scheduledFor": null,
+      "publishedAt": null,
+      "postId": ""
+    }
+  },
+  {
+    "month": 9,
+    "day": 16,
+    "year": 1974,
+    "title": "Federal court hears Annie Thompson's case against Chrysler",
+    "description": "On September 16, 1974, the U.S. District Court for the Eastern District of Michigan issued an order in Thompson v. Chrysler Corporation involving Annie Thompson, a 55-year-old Black former Chrysler employee seeking relief in connection with her employment claims.",
+    "significance": "The case provides a window into the intersection of Black women's employment, labor rights, age discrimination, and industrial work in Detroit during the 1970s.",
+    "category": "Labor",
+    "people": ["Annie Thompson"],
+    "organizations": [
+      "Chrysler Corporation",
+      "United States District Court for the Eastern District of Michigan"
+    ],
+    "location": {
+      "address": "",
+      "neighborhood": "Detroit"
+    },
+    "sources": [
+      {
+        "title": "Thompson v. Chrysler Corporation",
+        "url": "https://law.justia.com/cases/federal/district-courts/FSupp/382/1317/2596965/",
+        "notes": "Federal court decision dated September 16, 1974 concerning Annie Thompson and Chrysler Corporation."
+      }
+    ],
+    "images": [],
+    "verification": {
+      "status": "needs_review",
+      "notes": "Court record establishes the September 16, 1974 proceeding. Additional research is required to establish the Detroit-specific employment context before approval."
+    },
+    "archive": {
+      "status": "active",
+      "notes": "September 16 research seed."
+    },
+    "instagram": {
+      "status": "not_ready",
+      "caption": "",
+      "scheduledFor": null,
+      "publishedAt": null,
+      "postId": ""
+    }
+  },
+  {
+    "month": 9,
+    "day": 16,
+    "year": 1968,
+    "title": "Detroit Commission on Community Relations challenges police investigation after Cobo Hall assault",
+    "description": "On September 16, 1968, the Detroit Commission on Community Relations criticized the investigation conducted by the Citizen Complaint Bureau into a police assault at Cobo Hall.",
+    "significance": "The episode reflects continuing concerns about police accountability in Detroit following the 1967 uprising and the city's broader struggle over policing, civil rights, and community relations.",
+    "category": "Civil Rights",
+    "people": [],
+    "organizations": [
+      "Detroit Commission on Community Relations",
+      "Citizen Complaint Bureau"
+    ],
+    "location": {
+      "address": "Cobo Hall, Detroit, Michigan",
+      "neighborhood": "Downtown Detroit"
+    },
+    "sources": [
+      {
+        "title": "University of Michigan HistoryLabs — Detroit Under Fire",
+        "url": "https://policing.umhistorylabs.lsa.umich.edu/s/detroitunderfire/page/cobo-hall",
+        "notes": "Documents the Cobo Hall police assault and Detroit Commission on Community Relations response."
+      }
+    ],
+    "images": [],
+    "verification": {
+      "status": "needs_review",
+      "notes": "Historical lead identified through the Detroit Under Fire archive. Verify the exact September 16 action and wording before approval."
+    },
+    "archive": {
+      "status": "active",
+      "notes": "September 16 research seed."
+    },
+    "instagram": {
+      "status": "not_ready",
+      "caption": "",
+      "scheduledFor": null,
+      "publishedAt": null,
+      "postId": ""
+    }
   }
 ]
