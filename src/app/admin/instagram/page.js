@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
+import AdminNav from "@/components/AdminNav";
+
 const months = [
   "",
   "January",
@@ -91,43 +93,104 @@ export default function InstagramPage() {
       setSaving(true);
       setError("");
 
+      const payload = {
+        images: images.map((image) => ({
+          url: image.url,
+          credit: image.credit || "",
+          rights: image.rights || "",
+        })),
+        instagram: {
+          status:
+            selectedEvent.instagram?.status === "published"
+              ? "published"
+              : scheduledFor
+                ? "scheduled"
+                : "queued",
+          caption: caption.trim(),
+          scheduledFor: scheduledFor
+            ? new Date(scheduledFor).toISOString()
+            : null,
+        },
+      };
+
+      console.log("SAVING INSTAGRAM POST:", payload);
+
       const response = await fetch(`/api/history/${selectedEvent._id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          images,
-          instagram: {
-            ...selectedEvent.instagram,
-            status:
-              selectedEvent.instagram?.status === "published"
-                ? "published"
-                : scheduledFor
-                  ? "scheduled"
-                  : "queued",
-            caption,
-            scheduledFor: scheduledFor
-              ? new Date(scheduledFor).toISOString()
-              : null,
-          },
-        }),
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      console.log("SAVE RESPONSE:", {
+        status: response.status,
+        data,
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to save Instagram post");
+        throw new Error(
+          data.error || data.details || "Failed to save Instagram post",
+        );
       }
 
-      const updated = await response.json();
-
       setEvents((current) =>
-        current.map((event) => (event._id === updated._id ? updated : event)),
+        current.map((event) => (event._id === data._id ? data : event)),
       );
 
-      selectEvent(updated);
+      selectEvent(data);
+
+      alert(`Saved to MongoDB.\n\nImage count: ${data.images?.length || 0}`);
     } catch (err) {
+      console.error("SAVE FAILED:", err);
+
       setError(err.message || "Failed to save Instagram post");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function publishToInstagram() {
+    if (!selectedEvent) return;
+
+    const confirmed = window.confirm(
+      "Publish this approved post to the Detroit Black History Instagram account?",
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setSaving(true);
+      setError("");
+
+      const response = await fetch("/api/instagram/publish", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          eventId: selectedEvent._id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Instagram publishing failed");
+      }
+
+      alert("Published successfully to Instagram.");
+
+      await loadQueue();
+
+      setSelectedId("");
+      setCaption("");
+      setImages([]);
+      setScheduledFor("");
+    } catch (err) {
+      setError(err.message || "Instagram publishing failed");
     } finally {
       setSaving(false);
     }
@@ -265,28 +328,7 @@ export default function InstagramPage() {
             </p>
           </div>
 
-          <nav className="flex flex-wrap gap-2">
-            <Link
-              href="/admin"
-              className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50"
-            >
-              History Archive
-            </Link>
-
-            <Link
-              href="/admin/used"
-              className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50"
-            >
-              Used History
-            </Link>
-
-            <Link
-              href="/"
-              className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-            >
-              Public Page
-            </Link>
-          </nav>
+          <AdminNav />
         </header>
 
         {error && (
@@ -576,6 +618,20 @@ export default function InstagramPage() {
                       className="rounded-lg border border-zinc-300 bg-white px-5 py-2.5 text-sm font-medium hover:bg-zinc-50 disabled:opacity-50"
                     >
                       Mark Published / Used
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={
+                        saving ||
+                        !selectedEvent ||
+                        !caption.trim() ||
+                        !images[0]?.url
+                      }
+                      onClick={publishToInstagram}
+                      className="rounded-lg bg-black px-5 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {saving ? "Publishing..." : "Publish to Instagram"}
                     </button>
 
                     <button

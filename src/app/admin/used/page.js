@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+
+import AdminNav from "@/components/AdminNav";
 
 const months = [
   "",
@@ -84,28 +85,7 @@ export default function UsedHistoryPage() {
             </p>
           </div>
 
-          <nav className="flex flex-wrap gap-2">
-            <Link
-              href="/admin"
-              className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50"
-            >
-              History Archive
-            </Link>
-
-            <Link
-              href="/admin/instagram"
-              className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50"
-            >
-              Instagram Queue
-            </Link>
-
-            <Link
-              href="/"
-              className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-            >
-              Public Page
-            </Link>
-          </nav>
+          <AdminNav />
         </header>
 
         {/* SUMMARY */}

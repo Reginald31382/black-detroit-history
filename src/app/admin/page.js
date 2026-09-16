@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
+import AdminNav from "@/components/AdminNav";
+
 const months = [
   "",
   "January",
@@ -46,6 +48,19 @@ export default function AdminPage() {
   const [archive, setArchive] = useState("active");
 
   const [actionId, setActionId] = useState("");
+
+  const [seeding, setSeeding] = useState(false);
+  const [seedMessage, setSeedMessage] = useState("");
+
+  async function logout() {
+    try {
+      await fetch("/api/admin/logout", {
+        method: "POST",
+      });
+    } finally {
+      window.location.replace("/admin/login");
+    }
+  }
 
   async function loadEvents() {
     try {
@@ -134,6 +149,44 @@ export default function AdminPage() {
     }
   }
 
+  async function seedResearchBatch() {
+    const confirmed = window.confirm(
+      "Seed the recovered research batch into the archive?\n\nExisting records will NOT be overwritten.",
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setSeeding(true);
+      setSeedMessage("");
+      setError("");
+
+      const response = await fetch("/api/history/seed", {
+        method: "POST",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || data.details || "Failed to seed research batch",
+        );
+      }
+
+      setSeedMessage(
+        `Seed complete: ${data.created} new records added. ${data.skipped} existing records preserved.`,
+      );
+
+      await loadEvents();
+    } catch (err) {
+      console.error("RESEARCH SEED FAILED:", err);
+
+      setError(err.message || "Failed to seed research batch");
+    } finally {
+      setSeeding(false);
+    }
+  }
+
   const counts = useMemo(() => {
     return {
       total: events.length,
@@ -181,44 +234,15 @@ export default function AdminPage() {
               Different Years. Same Detroit.
             </p>
 
-            <h1 className="mt-1 text-3xl font-bold">Black Detroit History</h1>
+            <Link href="/" className="mt-1 text-3xl font-bold cursor-pointer">
+              Black Detroit History
+            </Link>
 
             <p className="mt-2 text-zinc-600">Archive Management — Version 1</p>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Link
-              href="/"
-              className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50"
-            >
-              Public Page
-            </Link>
-
-            <Link
-              href="/admin/instagram"
-              className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-            >
-              Instagram Queue
-            </Link>
-
-            <Link
-              href="/admin/used"
-              className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50"
-            >
-              Used History
-            </Link>
-            <Link
-              href="/admin/quality"
-              className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50"
-            >
-              Quality Control
-            </Link>
-            <Link
-              href="/admin/intake"
-              className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50"
-            >
-              Research Intake
-            </Link>
+            <AdminNav />
           </div>
         </div>
 
@@ -237,6 +261,74 @@ export default function AdminPage() {
           <StatCard label="Instagram" value={counts.instagram} />
 
           <StatCard label="Used" value={counts.used} />
+        </section>
+
+        {/* WORKFLOW */}
+        <section className="mb-6 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+          <div className="mb-5">
+            <h2 className="text-lg font-semibold">Daily Workflow</h2>
+
+            <p className="mt-1 text-sm text-zinc-500">
+              Move historical records from research through verification and
+              publishing.
+            </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <WorkflowCard
+              title="Research"
+              description="Add historical leads"
+              href="/admin/intake"
+              action="Research Intake"
+            />
+
+            <WorkflowCard
+              title="Verify"
+              description="Check records awaiting review"
+              href="/admin/quality"
+              action="Quality Control"
+              count={counts.needsReview}
+            />
+
+            <WorkflowCard
+              title="Archive"
+              description="View approved active history"
+              href="/admin"
+              action="History Archive"
+              count={counts.active}
+            />
+
+            <WorkflowCard
+              title="Instagram"
+              description="Prepare and publish posts"
+              href="/admin/instagram"
+              action="Instagram Queue"
+              count={counts.instagram}
+            />
+
+            <WorkflowCard
+              title="Used"
+              description="View published history"
+              href="/admin/used"
+              action="Used History"
+              count={counts.used}
+            />
+          </div>
+          <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-zinc-200 pt-5">
+            <button
+              type="button"
+              onClick={seedResearchBatch}
+              disabled={seeding}
+              className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {seeding ? "Seeding Research..." : "Seed Research Batch"}
+            </button>
+
+            <span className="text-xs text-zinc-500">
+              Adds recovered research leads without overwriting existing
+              records.
+            </span>
+          </div>
         </section>
 
         {/* FILTERS */}
@@ -319,6 +411,12 @@ export default function AdminPage() {
           </div>
         )}
 
+        {seedMessage && (
+          <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+            {seedMessage}
+          </div>
+        )}
+
         {/* LOADING */}
         {loading && (
           <div className="rounded-xl border border-zinc-200 bg-white p-10 text-center text-sm text-zinc-500">
@@ -365,6 +463,31 @@ function StatCard({ label, value }) {
 
       <div className="mt-1 text-2xl font-bold">{value}</div>
     </div>
+  );
+}
+
+function WorkflowCard({ title, description, href, action, count }) {
+  return (
+    <Link
+      href={href}
+      className="group rounded-xl border border-zinc-200 bg-zinc-50 p-4 transition hover:border-zinc-400 hover:bg-white"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold">{title}</p>
+
+          <p className="mt-1 text-xs leading-5 text-zinc-500">{description}</p>
+        </div>
+
+        {typeof count === "number" && (
+          <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold shadow-sm">
+            {count}
+          </span>
+        )}
+      </div>
+
+      <p className="mt-4 text-xs font-semibold">{action} →</p>
+    </Link>
   );
 }
 

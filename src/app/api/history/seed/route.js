@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import HistoryEvent from "@/models/HistoryEvent";
 
-const VALID_VERIFICATION = ["draft", "needs_review", "approved", "rejected"];
+import recoveredBatch from "@/data/black_detroit_history_recovered_needs_review_batch.json";
 
-const VALID_ARCHIVE = ["active", "instagram", "used"];
+const VERIFICATION_STATUSES = ["draft", "needs_review", "approved", "rejected"];
 
-const VALID_INSTAGRAM = [
+const ARCHIVE_STATUSES = ["active", "instagram", "used"];
+
+const INSTAGRAM_STATUSES = [
   "not_ready",
   "queued",
   "scheduled",
@@ -14,232 +16,154 @@ const VALID_INSTAGRAM = [
   "failed",
 ];
 
-function cleanInstagram(item) {
-  const existing = item.instagram || {};
-
+function normalizeRecord(record) {
   return {
-    status: VALID_INSTAGRAM.includes(existing.status)
-      ? existing.status
-      : "not_ready",
+    month: Number(record.month),
+    day: Number(record.day),
+    year: Number(record.year),
 
-    caption: existing.caption || "",
+    title: String(record.title || "").trim(),
 
-    scheduledFor: existing.scheduledFor || null,
+    description:
+      record.description || "Historical lead requiring further research.",
 
-    publishedAt: existing.publishedAt || null,
+    significance:
+      record.significance || "Significance requires further research.",
 
-    postId: existing.postId || "",
+    category: record.category || "Other",
+
+    people: Array.isArray(record.people) ? record.people : [],
+
+    organizations: Array.isArray(record.organizations)
+      ? record.organizations
+      : [],
+
+    location: {
+      address: record.location?.address || "",
+      neighborhood: record.location?.neighborhood || "",
+    },
+
+    sources: Array.isArray(record.sources) ? record.sources : [],
+
+    images: Array.isArray(record.images) ? record.images : [],
+
+    verification: {
+      status: VERIFICATION_STATUSES.includes(record.verification?.status)
+        ? record.verification.status
+        : "needs_review",
+
+      notes:
+        record.verification?.notes || "Historical lead requiring verification.",
+    },
+
+    archive: {
+      status: "active",
+      notes: record.archive?.notes || "Entered through research intake.",
+    },
+
+    instagram: {
+      status: "not_ready",
+      caption: "",
+      scheduledFor: null,
+      publishedAt: null,
+      postId: "",
+    },
   };
 }
 
-function cleanVerification(item) {
-  const status = item.verification?.status;
-
-  return {
-    status: VALID_VERIFICATION.includes(status) ? status : "draft",
-
-    notes: item.verification?.notes || "",
-  };
-}
-
-function cleanArchive(item) {
-  const status = item.archive?.status;
-
-  return {
-    status: VALID_ARCHIVE.includes(status) ? status : "active",
-
-    approvedForInstagramAt: item.archive?.approvedForInstagramAt || null,
-
-    usedAt: item.archive?.usedAt || null,
-
-    usedPostId: item.archive?.usedPostId || "",
-
-    notes: item.archive?.notes || "",
-  };
-}
-
-export async function POST(request) {
+export async function POST() {
   try {
     await connectDB();
 
-    const body = await request.json();
+    const uniqueRecords = new Map();
 
-    if (!Array.isArray(body)) {
-      return NextResponse.json(
-        {
-          error: "Seed payload must be an array of history records",
-        },
-        { status: 400 },
-      );
+    for (const rawRecord of recoveredBatch) {
+      const record = normalizeRecord(rawRecord);
+
+      const key = [
+        record.month,
+        record.day,
+        record.year,
+        record.title.toLowerCase(),
+      ].join("|");
+
+      if (!uniqueRecords.has(key)) {
+        uniqueRecords.set(key, record);
+      }
     }
 
     let created = 0;
-    let updated = 0;
     let skipped = 0;
 
-    for (const item of body) {
-      /*
-       * Basic identity check.
-       */
-      if (!item.month || !item.day || !item.year || !item.title) {
+    for (const record of uniqueRecords.values()) {
+      const existing = await HistoryEvent.findOne({
+        month: record.month,
+        day: record.day,
+        year: record.year,
+        title: record.title,
+      }).lean();
+
+      if (existing) {
         skipped++;
         continue;
       }
 
-      /*
-       * Use the same date + title identity that the
-       * archive uses to prevent duplicate seed records.
-       */
-      const identity = {
-        month: Number(item.month),
-        day: Number(item.day),
-        year: Number(item.year),
-        title: item.title.trim(),
-      };
-
-      const existing = await HistoryEvent.findOne(identity);
-
-      /*
-       * IMPORTANT:
-       *
-       * Existing lifecycle data is preserved.
-       *
-       * Reseeding should update historical content,
-       * sources, people, organizations, etc.
-       *
-       * It must NOT reset:
-       *
-       * - used records
-       * - Instagram captions
-       * - publication dates
-       * - post IDs
-       * - images
-       * - queue state
-       */
-      if (existing) {
-        const protectedData = {
-          verification:
-            existing.verification?.toObject?.() || existing.verification,
-
-          archive: existing.archive?.toObject?.() || existing.archive,
-
-          instagram: existing.instagram?.toObject?.() || existing.instagram,
-
-          images: existing.images || [],
-        };
-
-        const update = {
-          ...item,
-
-          month: identity.month,
-          day: identity.day,
-          year: identity.year,
-          title: identity.title,
-
-          /*
-           * Preserve lifecycle data.
-           */
-          verification: protectedData.verification,
-          archive: protectedData.archive,
-          instagram: protectedData.instagram,
-          images: protectedData.images,
-        };
-
-        await HistoryEvent.findByIdAndUpdate(existing._id, update, {
-          new: true,
-          runValidators: true,
-          overwrite: false,
-        });
-
-        updated++;
-        continue;
-      }
-
-      /*
-       * New records get clean initial lifecycle state.
-       */
-      const verification = cleanVerification(item);
-
-      const archive = cleanArchive(item);
-      const instagram = cleanInstagram(item);
-
-      /*
-       * Never allow a bad seed combination.
-       */
-      let finalArchive = archive;
-      let finalInstagram = instagram;
-
-      if (
-        archive.status === "instagram" &&
-        verification.status !== "approved"
-      ) {
-        finalArchive = {
-          ...archive,
-          status: "active",
-        };
-
-        finalInstagram = {
-          ...instagram,
-          status: "not_ready",
-        };
-      }
-
-      if (archive.status === "used" && verification.status !== "approved") {
-        finalArchive = {
-          ...archive,
-          status: "active",
-        };
-
-        finalInstagram = {
-          ...instagram,
-          status: "not_ready",
-        };
-      }
-
-      if (
-        finalArchive.status === "active" &&
-        finalInstagram.status !== "not_ready"
-      ) {
-        finalInstagram = {
-          ...finalInstagram,
-          status: "not_ready",
-        };
-      }
-
-      await HistoryEvent.create({
-        ...item,
-
-        month: identity.month,
-        day: identity.day,
-        year: identity.year,
-        title: identity.title,
-
-        verification,
-        archive: finalArchive,
-        instagram: finalInstagram,
-
-        images: item.images || [],
-      });
+      await HistoryEvent.create(record);
 
       created++;
     }
 
     const total = await HistoryEvent.countDocuments();
 
+    const needsReview = await HistoryEvent.countDocuments({
+      "verification.status": "needs_review",
+    });
+
+    const approved = await HistoryEvent.countDocuments({
+      "verification.status": "approved",
+    });
+
+    const active = await HistoryEvent.countDocuments({
+      "archive.status": "active",
+    });
+
+    const instagram = await HistoryEvent.countDocuments({
+      "archive.status": "instagram",
+    });
+
+    const used = await HistoryEvent.countDocuments({
+      "archive.status": "used",
+    });
+
     return NextResponse.json({
       success: true,
-      message: "Seed complete",
+
+      message: "Recovered research batch seeded safely.",
+
+      sourceRecords: recoveredBatch.length,
+
+      uniqueSeedRecords: uniqueRecords.size,
+
       created,
-      updated,
+
       skipped,
-      total,
+
+      databaseTotal: total,
+
+      lifecycleTotals: {
+        needsReview,
+        approved,
+        active,
+        instagram,
+        used,
+      },
     });
   } catch (error) {
-    console.error(error);
+    console.error("HISTORY SEED FAILED:", error);
 
     return NextResponse.json(
       {
-        error: "Seed failed",
+        error: "Failed to seed history",
         details: error.message,
       },
       { status: 500 },

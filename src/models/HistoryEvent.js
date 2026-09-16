@@ -137,7 +137,6 @@ const HistoryEventSchema = new mongoose.Schema(
         type: String,
         enum: ["active", "instagram", "used"],
         default: "active",
-        index: true,
       },
 
       approvedForInstagramAt: Date,

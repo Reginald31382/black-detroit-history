@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 
+import AdminNav from "@/components/AdminNav";
+
 const months = [
   "",
   "January",
@@ -123,7 +125,7 @@ export default function ResearchIntakePage() {
         throw new Error(data.error || "Failed to add historical lead");
       }
 
-      setMessage("Historical lead added to the archive for review.");
+      window.location.replace("/admin/quality");
 
       setForm({
         month: "",
@@ -165,21 +167,7 @@ export default function ResearchIntakePage() {
             </p>
           </div>
 
-          <nav className="flex flex-wrap gap-2">
-            <Link
-              href="/admin"
-              className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50"
-            >
-              History Archive
-            </Link>
-
-            <Link
-              href="/admin/quality"
-              className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50"
-            >
-              Quality Control
-            </Link>
-          </nav>
+          <AdminNav />
         </header>
 
         <div className="mb-6 rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
