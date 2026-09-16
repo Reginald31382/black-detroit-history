@@ -1,4 +1,5 @@
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
 export const metadata = {
   title: "On This Day in Black Detroit History",
   description: "Different Years. Same Detroit.",

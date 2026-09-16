@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import AdminNav from "@/components/AdminNav";
 
@@ -9,6 +9,12 @@ export default function QualityPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updatingId, setUpdatingId] = useState(null);
+  const [search, setSearch] = useState("");
+  const [filterMonth, setFilterMonth] = useState("");
+  const [filterDay, setFilterDay] = useState("");
+  const [filterYear, setFilterYear] = useState("");
+  const [filterVerification, setFilterVerification] = useState("needs_review");
+  const [filterArchive, setFilterArchive] = useState("active");
 
   async function runCheck() {
     try {
@@ -104,6 +110,53 @@ export default function QualityPage() {
   useEffect(() => {
     runCheck();
   }, []);
+
+  const filteredNeedsReview = useMemo(() => {
+    if (!data?.needsReview) return [];
+
+    const term = search.trim().toLowerCase();
+
+    return data.needsReview.filter((item) => {
+      const matchesSearch =
+        !term ||
+        [item.title, item.date, item.verification, item.archive]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(term);
+
+      const matchesDate =
+        (!filterMonth || String(item.month) === String(filterMonth)) &&
+        (!filterDay || String(item.day) === String(filterDay)) &&
+        (!filterYear || String(item.year) === String(filterYear));
+
+      const matchesVerification =
+        !filterVerification || item.verification === filterVerification;
+
+      const matchesArchive = !filterArchive || item.archive === filterArchive;
+
+      return (
+        matchesSearch && matchesDate && matchesVerification && matchesArchive
+      );
+    });
+  }, [
+    data,
+    search,
+    filterMonth,
+    filterDay,
+    filterYear,
+    filterVerification,
+    filterArchive,
+  ]);
+
+  function resetFilters() {
+    setSearch("");
+    setFilterMonth("");
+    setFilterDay("");
+    setFilterYear("");
+    setFilterVerification("needs_review");
+    setFilterArchive("active");
+  }
 
   return (
     <main className="min-h-screen bg-zinc-100 px-4 py-8 text-zinc-900">
@@ -260,12 +313,184 @@ export default function QualityPage() {
                 items={data.missingCategory}
               />
 
-              <ReviewSection
-                title="Needs Review"
-                items={data.needsReview}
-                updatingId={updatingId}
-                onUpdate={updateVerification}
-              />
+              <section className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold">Needs Review</h2>
+
+                    <p className="mt-1 text-sm text-zinc-500">
+                      Historical records waiting for verification.
+                    </p>
+                  </div>
+
+                  <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold">
+                    {filteredNeedsReview.length}
+                  </span>
+                </div>
+
+                {/* Search + Filters */}
+                <div className="mt-5 rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-6">
+                    <div className="lg:col-span-2">
+                      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                        Search
+                      </label>
+
+                      <input
+                        type="text"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Search title..."
+                        className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                        Month
+                      </label>
+
+                      <input
+                        type="number"
+                        min="1"
+                        max="12"
+                        value={filterMonth}
+                        onChange={(e) => setFilterMonth(e.target.value)}
+                        placeholder="1–12"
+                        className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                        Day
+                      </label>
+
+                      <input
+                        type="number"
+                        min="1"
+                        max="31"
+                        value={filterDay}
+                        onChange={(e) => setFilterDay(e.target.value)}
+                        placeholder="1–31"
+                        className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                        Year
+                      </label>
+
+                      <input
+                        type="number"
+                        value={filterYear}
+                        onChange={(e) => setFilterYear(e.target.value)}
+                        placeholder="Year"
+                        className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                        Verification
+                      </label>
+
+                      <select
+                        value={filterVerification}
+                        onChange={(e) => setFilterVerification(e.target.value)}
+                        className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="">All</option>
+                        <option value="draft">Draft</option>
+                        <option value="needs_review">Needs Review</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <select
+                      value={filterArchive}
+                      onChange={(e) => setFilterArchive(e.target.value)}
+                      className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="">All archive statuses</option>
+                      <option value="active">Active</option>
+                      <option value="instagram">Instagram</option>
+                      <option value="used">Used</option>
+                    </select>
+
+                    <button
+                      type="button"
+                      onClick={resetFilters}
+                      className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium hover:bg-zinc-100"
+                    >
+                      Reset Filters
+                    </button>
+                  </div>
+                </div>
+
+                {filteredNeedsReview.length === 0 ? (
+                  <div className="mt-5 rounded-lg bg-zinc-50 p-4 text-sm text-zinc-600">
+                    No matching records found.
+                  </div>
+                ) : (
+                  <div className="mt-5 space-y-4">
+                    {filteredNeedsReview.map((item) => {
+                      const isUpdating = updatingId === item.id;
+
+                      return (
+                        <div
+                          key={item.id}
+                          className="rounded-lg border border-zinc-200 p-4"
+                        >
+                          <p className="font-semibold">{item.title}</p>
+
+                          <p className="mt-1 text-sm text-zinc-500">
+                            {item.date}
+                          </p>
+
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <span className="rounded-md border border-zinc-200 px-2 py-1 text-xs">
+                              Verification: {item.verification}
+                            </span>
+
+                            <span className="rounded-md border border-zinc-200 px-2 py-1 text-xs">
+                              Archive: {item.archive}
+                            </span>
+                          </div>
+
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              disabled={isUpdating}
+                              onClick={() =>
+                                updateVerification(item.id, "approved")
+                              }
+                              className="rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {isUpdating ? "Updating..." : "Approve"}
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={isUpdating}
+                              onClick={() =>
+                                updateVerification(item.id, "rejected")
+                              }
+                              className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
 
               <SimpleIssueSection title="Rejected" items={data.rejected} />
 

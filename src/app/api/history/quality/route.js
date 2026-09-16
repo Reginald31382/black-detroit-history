@@ -143,6 +143,9 @@ export async function GET() {
 function formatBasicRecord(event) {
   return {
     id: event._id,
+    month: event.month,
+    day: event.day,
+    year: event.year,
     date: `${event.month}/${event.day}/${event.year}`,
     title: event.title,
     verification: event.verification?.status || "draft",
