@@ -34,7 +34,7 @@ export default function QualityPage() {
 
   async function approveBatchOne() {
     const confirmed = window.confirm(
-      "Approve the 5 verified historical records in Batch 1?",
+      "Approve the 4 verified historical records in Batch 2?",
     );
 
     if (!confirmed) return;
@@ -50,7 +50,7 @@ export default function QualityPage() {
 
       if (!response.ok) {
         throw new Error(
-          data.error || data.details || "Failed to approve Batch 1",
+          data.error || data.details || "Failed to approve Batch 2",
         );
       }
 
@@ -138,7 +138,7 @@ export default function QualityPage() {
               onClick={approveBatchOne}
               className="rounded-lg bg-black px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800"
             >
-              Approve Batch 1
+              Approve Batch 2
             </button>
           </div>
         </div>
