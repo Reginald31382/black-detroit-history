@@ -71,7 +71,7 @@ export default function Home() {
           </p>
 
           <h1 className="mt-2 text-4xl font-bold tracking-tight md:text-5xl">
-            Different Years. Same Detroit.
+            Different Years. A Different Detroit.
           </h1>
 
           {dateLabel && (

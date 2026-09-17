@@ -6,10 +6,12 @@ const SourceSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+
     url: {
       type: String,
       required: true,
     },
+
     notes: String,
   },
   { _id: false },
@@ -21,7 +23,9 @@ const ImageSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+
     credit: String,
+
     rights: String,
   },
   { _id: false },
@@ -29,6 +33,31 @@ const ImageSchema = new mongoose.Schema(
 
 const HistoryEventSchema = new mongoose.Schema(
   {
+    /*
+     * CONTENT TYPE
+     *
+     * historical_event
+     *   Traditional "On This Day" historical record.
+     *
+     * then_and_now
+     *   Detroit location/institution comparison
+     *   showing historical Detroit and Detroit today.
+     */
+    contentType: {
+      type: String,
+      enum: ["historical_event", "then_and_now"],
+      default: "historical_event",
+      index: true,
+    },
+
+    /*
+     * ON THIS DAY DATE
+     *
+     * Historical events use the actual event date.
+     *
+     * Then & Now records use this as the
+     * feature/publication date.
+     */
     month: {
       type: Number,
       required: true,
@@ -108,6 +137,53 @@ const HistoryEventSchema = new mongoose.Schema(
       default: [],
     },
 
+    /*
+     * DETROIT THEN & NOW
+     *
+     * These fields are only used when
+     * contentType === "then_and_now".
+     *
+     * Existing historical_event records
+     * can leave these fields empty.
+     */
+    thenAndNow: {
+      then: {
+        year: Number,
+
+        description: String,
+
+        images: {
+          type: [ImageSchema],
+          default: [],
+        },
+
+        sources: {
+          type: [SourceSchema],
+          default: [],
+        },
+      },
+
+      now: {
+        year: Number,
+
+        description: String,
+
+        images: {
+          type: [ImageSchema],
+          default: [],
+        },
+
+        sources: {
+          type: [SourceSchema],
+          default: [],
+        },
+      },
+
+      changes: String,
+
+      continuity: String,
+    },
+
     verification: {
       status: {
         type: String,
@@ -172,9 +248,22 @@ const HistoryEventSchema = new mongoose.Schema(
   },
 );
 
-HistoryEventSchema.index({ month: 1, day: 1 });
+/*
+ * INDEXES
+ */
 
-HistoryEventSchema.index({ year: 1 });
+HistoryEventSchema.index({
+  month: 1,
+  day: 1,
+});
+
+HistoryEventSchema.index({
+  year: 1,
+});
+
+HistoryEventSchema.index({
+  contentType: 1,
+});
 
 HistoryEventSchema.index({
   "verification.status": 1,

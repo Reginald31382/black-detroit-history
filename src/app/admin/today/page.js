@@ -166,7 +166,7 @@ export default function TodayPage() {
         <header className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
-              Different Years. Same Detroit.
+              Different Years. A Different Detroit.
             </p>
 
             <h1 className="mt-1 text-3xl font-bold">On This Day</h1>

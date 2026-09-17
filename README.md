@@ -1,6 +1,6 @@
 # On This Day in Black Detroit History
 
-**Different Years. Same Detroit.**
+**Different Years. A Different Detroit.**
 
 ## What This Application Is
 
@@ -297,7 +297,7 @@ The public experience is intentionally simple:
 ``` text
 On This Day in Black Detroit History
 
-Different Years. Same Detroit.
+Different Years. A Different Detroit.
 
 [Today's date]
 
@@ -612,4 +612,4 @@ The long-term objective is to build a durable, searchable, continually
 growing archive of Black history connected to Detroit --- organized by
 date and preserved across generations.
 
-**Different Years. Same Detroit.**
+**Different Years. A Different Detroit.**

@@ -23,6 +23,13 @@ export default function AdminNav() {
       </Link>
 
       <Link
+        href="/admin/then-and-now"
+        className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium hover:bg-zinc-50"
+      >
+        Then &amp; Now
+      </Link>
+
+      <Link
         href="/admin/today"
         className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50"
       >

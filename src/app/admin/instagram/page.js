@@ -72,7 +72,18 @@ export default function InstagramPage() {
 
     setCaption(event.instagram?.caption || buildCaption(event));
 
-    setImages(event.images || []);
+    if (event.contentType === "then_and_now") {
+      const thenImages = event.thenAndNow?.then?.images || [];
+      const nowImages = event.thenAndNow?.now?.images || [];
+
+      const combinedImages = [...thenImages, ...nowImages];
+
+      setImages(
+        combinedImages.length > 0 ? combinedImages : event.images || [],
+      );
+    } else {
+      setImages(event.images || []);
+    }
 
     setScheduledFor(
       event.instagram?.scheduledFor
@@ -88,7 +99,15 @@ export default function InstagramPage() {
 
   async function savePost() {
     if (!selectedEvent) return;
+    if (images.length > 10) {
+      setError("Instagram posts can contain up to 10 images.");
+      return;
+    }
 
+    if (images.length === 0) {
+      setError("Add at least one image before saving.");
+      return;
+    }
     try {
       setSaving(true);
       setError("");
@@ -281,6 +300,11 @@ export default function InstagramPage() {
   function addImage() {
     if (!imageUrl.trim()) return;
 
+    if (images.length >= 10) {
+      setError("Instagram posts can contain up to 10 images.");
+      return;
+    }
+
     setImages((current) => [
       ...current,
       {
@@ -293,6 +317,7 @@ export default function InstagramPage() {
     setImageUrl("");
     setImageCredit("");
     setImageRights("");
+    setError("");
   }
 
   function removeImage(index) {
@@ -318,7 +343,7 @@ export default function InstagramPage() {
         <header className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
-              Different Years. Same Detroit.
+              Different Years. A Different Detroit.
             </p>
 
             <h1 className="mt-1 text-3xl font-bold">Instagram Queue</h1>
@@ -382,7 +407,9 @@ export default function InstagramPage() {
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-semibold text-zinc-500">
-                          {months[event.month]} {event.day}
+                          {event.contentType === "then_and_now"
+                            ? "THEN & NOW"
+                            : `${months[event.month]} ${event.day}`}
                         </span>
 
                         <InstagramStatus
@@ -408,8 +435,9 @@ export default function InstagramPage() {
                 <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-semibold">
-                      {months[selectedEvent.month]} {selectedEvent.day},{" "}
-                      {selectedEvent.year}
+                      {selectedEvent.contentType === "then_and_now"
+                        ? "Detroit Then & Now"
+                        : `${months[selectedEvent.month]} ${selectedEvent.day}, ${selectedEvent.year}`}
                     </span>
 
                     <InstagramStatus
@@ -467,8 +495,13 @@ export default function InstagramPage() {
 
                 {/* IMAGES */}
                 <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-                  <h2 className="font-semibold">Images</h2>
+                  <div className="flex items-center justify-between">
+                    <h2 className="font-semibold">Images</h2>
 
+                    <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold">
+                      {images.length}/10
+                    </span>
+                  </div>
                   <p className="mt-1 text-sm text-zinc-500">
                     Add image URLs and record the source, credit, and rights
                     information.
@@ -499,9 +532,10 @@ export default function InstagramPage() {
                     <button
                       type="button"
                       onClick={addImage}
-                      className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+                      disabled={images.length >= 10}
+                      className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      Add Image
+                      {images.length >= 10 ? "10 Images Added" : "Add Image"}
                     </button>
                   </div>
 
@@ -626,7 +660,7 @@ export default function InstagramPage() {
                         saving ||
                         !selectedEvent ||
                         !caption.trim() ||
-                        !images[0]?.url
+                        images.length === 0
                       }
                       onClick={publishToInstagram}
                       className="rounded-lg bg-black px-5 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
@@ -654,6 +688,47 @@ export default function InstagramPage() {
 }
 
 function buildCaption(event) {
+  if (event.contentType === "then_and_now") {
+    const thenData = event.thenAndNow?.then;
+    const nowData = event.thenAndNow?.now;
+
+    const thenYear = thenData?.year || event.year;
+
+    const nowYear = nowData?.year || new Date().getFullYear();
+
+    const thenDescription = thenData?.description || event.description || "";
+
+    const nowDescription = nowData?.description || "";
+
+    const changes = event.thenAndNow?.changes || event.significance || "";
+
+    const continuity = event.thenAndNow?.continuity || "";
+
+    return `DETROIT THEN & NOW
+
+${event.title}
+
+THEN — ${thenYear}
+
+${thenDescription}
+
+NOW — ${nowYear}
+
+${nowDescription}
+
+WHAT CHANGED
+
+${changes}
+
+WHAT REMAINS
+
+${continuity}
+
+Different Years. A Different Detroit.
+
+#BlackDetroitHistory #DetroitHistory #BlackHistory #Detroit`;
+  }
+
   const date = `${months[event.month]} ${event.day}, ${event.year}`;
 
   const people =
@@ -675,7 +750,7 @@ ${event.description}
 Why it matters:
 ${event.significance}${people}${organizations}
 
-Different Years. Same Detroit.
+Different Years. A Different Detroit.
 
 #BlackDetroitHistory #DetroitHistory #BlackHistory #Detroit`;
 }

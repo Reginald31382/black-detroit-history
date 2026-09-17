@@ -58,6 +58,48 @@ async function instagramRequest(path, body = null, method = "GET") {
   return data;
 }
 
+async function waitForContainer(containerId) {
+  let statusData = null;
+
+  for (let attempt = 0; attempt < 15; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    statusData = await instagramRequest(
+      `/${containerId}?fields=status_code,status`,
+    );
+
+    if (statusData.status_code === "FINISHED") {
+      return statusData;
+    }
+
+    if (
+      statusData.status_code === "ERROR" ||
+      statusData.status_code === "EXPIRED"
+    ) {
+      const error = new Error(
+        statusData.status ||
+          `Instagram media container failed: ${statusData.status_code}`,
+      );
+
+      error.status = 400;
+      error.apiResponse = statusData;
+
+      throw error;
+    }
+  }
+
+  const error = new Error(
+    `Instagram media container did not finish. Status: ${
+      statusData?.status_code || "unknown"
+    }`,
+  );
+
+  error.status = 400;
+  error.apiResponse = statusData;
+
+  throw error;
+}
+
 export async function POST(request) {
   let stage = "starting";
 
@@ -122,12 +164,23 @@ export async function POST(request) {
       );
     }
 
-    const image = event.images?.find((item) => item?.url && item.url.trim());
+    const images = (event.images || [])
+      .filter((item) => item?.url && item.url.trim())
+      .slice(0, 10);
 
-    if (!image) {
+    if (images.length === 0) {
       return NextResponse.json(
         {
-          error: "No image URL exists in MongoDB for this record",
+          error: "No image URLs exist in MongoDB for this record",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (images.length > 10) {
+      return NextResponse.json(
+        {
+          error: "Instagram posts can contain a maximum of 10 images",
         },
         { status: 400 },
       );
@@ -145,98 +198,175 @@ export async function POST(request) {
     }
 
     /*
-     * STEP 1
-     * Create Instagram media container.
+     * ONE IMAGE
+     *
+     * Standard Instagram image post.
      */
 
-    stage = "creating_media_container";
+    if (images.length === 1) {
+      stage = "creating_single_image_container";
 
-    const container = await instagramRequest(
+      const container = await instagramRequest(
+        `/${INSTAGRAM_ACCOUNT_ID}/media`,
+        {
+          image_url: images[0].url,
+          caption,
+        },
+        "POST",
+      );
+
+      const containerId = container?.id;
+
+      if (!containerId) {
+        throw new Error("Instagram did not return a media container ID");
+      }
+
+      stage = "checking_single_image_status";
+
+      await waitForContainer(containerId);
+
+      stage = "publishing_single_image";
+
+      const published = await instagramRequest(
+        `/${INSTAGRAM_ACCOUNT_ID}/media_publish`,
+        {
+          creation_id: containerId,
+        },
+        "POST",
+      );
+
+      if (!published?.id) {
+        throw new Error("Instagram did not return a published media ID");
+      }
+
+      stage = "saving_published_record";
+
+      const now = new Date();
+
+      event.archive.status = "used";
+      event.archive.usedAt = now;
+      event.archive.usedPostId = published.id;
+
+      event.instagram.status = "published";
+      event.instagram.publishedAt = now;
+      event.instagram.postId = published.id;
+
+      await event.save();
+
+      return NextResponse.json({
+        success: true,
+        message: "Published successfully to Instagram",
+        instagramPostId: published.id,
+        containerId,
+        imageCount: 1,
+        postType: "single",
+      });
+    }
+
+    /*
+     * MULTIPLE IMAGES
+     *
+     * Instagram carousel workflow:
+     *
+     * 1. Create an individual IMAGE container
+     *    for every image.
+     *
+     * 2. Wait for every child container
+     *    to finish processing.
+     *
+     * 3. Create the CAROUSEL container
+     *    using the child container IDs.
+     *
+     * 4. Wait for the carousel container.
+     *
+     * 5. Publish the carousel.
+     */
+
+    stage = "creating_carousel_image_containers";
+
+    const childContainerIds = [];
+
+    for (let index = 0; index < images.length; index++) {
+      const image = images[index];
+
+      const child = await instagramRequest(
+        `/${INSTAGRAM_ACCOUNT_ID}/media`,
+        {
+          image_url: image.url,
+          is_carousel_item: true,
+        },
+        "POST",
+      );
+
+      if (!child?.id) {
+        throw new Error(
+          `Instagram did not return a container ID for image ${index + 1}`,
+        );
+      }
+
+      childContainerIds.push(child.id);
+    }
+
+    /*
+     * Wait for each carousel child.
+     */
+
+    stage = "checking_carousel_image_status";
+
+    for (let index = 0; index < childContainerIds.length; index++) {
+      await waitForContainer(childContainerIds[index]);
+    }
+
+    /*
+     * Create the parent carousel container.
+     */
+
+    stage = "creating_carousel_container";
+
+    const carousel = await instagramRequest(
       `/${INSTAGRAM_ACCOUNT_ID}/media`,
       {
-        image_url: image.url,
+        media_type: "CAROUSEL",
+        children: childContainerIds,
         caption,
       },
       "POST",
     );
 
-    const containerId = container?.id;
+    const carouselContainerId = carousel?.id;
 
-    if (!containerId) {
-      throw new Error("Instagram did not return a media container ID");
+    if (!carouselContainerId) {
+      throw new Error("Instagram did not return a carousel container ID");
     }
 
     /*
-     * STEP 2
-     * Poll container status.
+     * Wait for carousel processing.
      */
 
-    stage = "checking_media_status";
+    stage = "checking_carousel_status";
 
-    let statusData = null;
-
-    for (let attempt = 0; attempt < 15; attempt++) {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      statusData = await instagramRequest(
-        `/${containerId}?fields=status_code,status`,
-      );
-
-      if (statusData.status_code === "FINISHED") {
-        break;
-      }
-
-      if (
-        statusData.status_code === "ERROR" ||
-        statusData.status_code === "EXPIRED"
-      ) {
-        const error = new Error(
-          statusData.status ||
-            `Instagram media container failed: ${statusData.status_code}`,
-        );
-
-        error.status = 400;
-        error.apiResponse = statusData;
-
-        throw error;
-      }
-    }
-
-    if (statusData?.status_code !== "FINISHED") {
-      const error = new Error(
-        `Instagram media container did not finish. Status: ${
-          statusData?.status_code || "unknown"
-        }`,
-      );
-
-      error.status = 400;
-      error.apiResponse = statusData;
-
-      throw error;
-    }
+    await waitForContainer(carouselContainerId);
 
     /*
-     * STEP 3
-     * Publish the container.
+     * Publish carousel.
      */
 
-    stage = "publishing_media";
+    stage = "publishing_carousel";
 
     const published = await instagramRequest(
       `/${INSTAGRAM_ACCOUNT_ID}/media_publish`,
       {
-        creation_id: containerId,
+        creation_id: carouselContainerId,
       },
       "POST",
     );
 
     if (!published?.id) {
-      throw new Error("Instagram did not return a published media ID");
+      throw new Error("Instagram did not return a published carousel media ID");
     }
 
     /*
-     * STEP 4
-     * Mark BDH record as used.
+     * Mark BDH record as USED.
      */
 
     stage = "saving_published_record";
@@ -244,20 +374,27 @@ export async function POST(request) {
     const now = new Date();
 
     event.archive.status = "used";
+
     event.archive.usedAt = now;
+
     event.archive.usedPostId = published.id;
 
     event.instagram.status = "published";
+
     event.instagram.publishedAt = now;
+
     event.instagram.postId = published.id;
 
     await event.save();
 
     return NextResponse.json({
       success: true,
-      message: "Published successfully to Instagram",
+      message: "Carousel published successfully to Instagram",
       instagramPostId: published.id,
-      containerId,
+      containerId: carouselContainerId,
+      childContainerIds,
+      imageCount: images.length,
+      postType: "carousel",
     });
   } catch (error) {
     console.error("INSTAGRAM PUBLISH FAILED", {

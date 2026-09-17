@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import HistoryEvent from "@/models/HistoryEvent";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request) {
   try {
     await connectDB();
@@ -45,7 +47,13 @@ export async function GET(request) {
         month,
         day,
         "verification.status": "approved",
-        "archive.status": "active",
+
+        // Public history should remain visible even
+        // after it enters the Instagram queue or
+        // has already been published.
+        "archive.status": {
+          $in: ["active", "instagram", "used"],
+        },
       },
       {
         month: 1,
@@ -64,14 +72,21 @@ export async function GET(request) {
       .sort({ year: 1 })
       .lean();
 
-    return NextResponse.json({
-      date: {
-        month,
-        day,
+    return NextResponse.json(
+      {
+        date: {
+          month,
+          day,
+        },
+        count: events.length,
+        events,
       },
-      count: events.length,
-      events,
-    });
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+        },
+      },
+    );
   } catch (error) {
     console.error("Failed to load today's history:", error);
 
