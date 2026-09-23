@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 export default function AdminLoginPage() {
@@ -86,6 +87,14 @@ export default function AdminLoginPage() {
             />
           </div>
 
+          <div className="text-right">
+            <Link
+              href="/admin/forgot-password"
+              className="text-sm font-medium text-zinc-600 hover:text-black"
+            >
+              Forgot Password?
+            </Link>
+          </div>
           <button
             type="submit"
             disabled={loading}

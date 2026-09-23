@@ -1,13 +1,20 @@
 import { NextResponse } from "next/server";
 
+import { getSessionCookieName, verifySessionToken } from "@/lib/auth/session";
+
 export function proxy(request) {
   const { pathname } = request.nextUrl;
 
   // Public routes
   if (
     pathname === "/admin/login" ||
+    pathname === "/admin/forgot-password" ||
+    pathname === "/admin/reset-password" ||
     pathname === "/api/admin/login" ||
     pathname === "/api/admin/logout" ||
+    pathname === "/api/admin/forgot-password" ||
+    pathname === "/api/admin/forgot-password/questions" ||
+    pathname === "/api/admin/reset-password" ||
     pathname === "/api/history/today"
   ) {
     return NextResponse.next();
@@ -15,9 +22,11 @@ export function proxy(request) {
 
   // Protect all admin pages
   if (pathname.startsWith("/admin")) {
-    const session = request.cookies.get("bdh_admin_session")?.value;
+    const sessionToken = request.cookies.get(getSessionCookieName())?.value;
 
-    if (session !== "authenticated") {
+    const session = verifySessionToken(sessionToken);
+
+    if (!session) {
       return NextResponse.redirect(new URL("/admin/login", request.url));
     }
   }
@@ -27,9 +36,11 @@ export function proxy(request) {
     pathname.startsWith("/api/history") &&
     pathname !== "/api/history/today"
   ) {
-    const session = request.cookies.get("bdh_admin_session")?.value;
+    const sessionToken = request.cookies.get(getSessionCookieName())?.value;
 
-    if (session !== "authenticated") {
+    const session = verifySessionToken(sessionToken);
+
+    if (!session) {
       return NextResponse.json(
         {
           error: "Unauthorized",
@@ -41,9 +52,11 @@ export function proxy(request) {
 
   // Protect Instagram APIs
   if (pathname.startsWith("/api/instagram")) {
-    const session = request.cookies.get("bdh_admin_session")?.value;
+    const sessionToken = request.cookies.get(getSessionCookieName())?.value;
 
-    if (session !== "authenticated") {
+    const session = verifySessionToken(sessionToken);
+
+    if (!session) {
       return NextResponse.json(
         {
           error: "Unauthorized",

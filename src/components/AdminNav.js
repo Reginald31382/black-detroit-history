@@ -64,6 +64,13 @@ export default function AdminNav() {
         Used History
       </Link>
 
+      <Link
+        href="/admin/change-password"
+        className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50"
+      >
+        Change Password
+      </Link>
+
       <button
         type="button"
         onClick={logout}
