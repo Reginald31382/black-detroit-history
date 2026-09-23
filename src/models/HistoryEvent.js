@@ -262,10 +262,6 @@ HistoryEventSchema.index({
 });
 
 HistoryEventSchema.index({
-  contentType: 1,
-});
-
-HistoryEventSchema.index({
   "verification.status": 1,
 });
 
